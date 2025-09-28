@@ -108,6 +108,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clear Azure CLI Cache
+        run: az account clear
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -162,7 +165,7 @@ jobs:
     with:
       aks_cluster_name: mivoaks
       aks_resource_group: deakin
-      aks_acr_name: ${{ secrets.ACR_NAME }}
+      aks_acr_name: mivohd
       image_tag: ${{ github.sha }}-${{ github.run_id }}
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
