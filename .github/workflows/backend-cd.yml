@@ -77,8 +77,18 @@ jobs:
             kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
           done
 
-  trigger_frontend:
+  debug_frontend_file:
     needs: deploy_backends
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: List workflows folder
+        run: ls -l .github/workflows/
+
+  trigger_frontend:
+    needs: debug_frontend_file
     uses: ./.github/workflows/frontend-cd.yml
     with:
       aks_cluster_name: ${{ inputs.aks_cluster_name }}
