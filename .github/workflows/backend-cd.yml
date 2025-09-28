@@ -19,9 +19,8 @@ on:
       AZURE_CREDENTIALS:
         required: true
 
-# --- Build & Push Docker Images (matrix) ---
 jobs:
-  build_and_push_backend_images:
+  build_and_push_images:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,7 +29,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build & push backend Docker image
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build & push Docker image
         uses: docker/build-push-action@v4
         with:
           context: ./backend/${{ matrix.service }}
@@ -40,10 +44,9 @@ jobs:
           build-args: |
             PYTHONUNBUFFERED=1
 
-# --- Deploy backend services to AKS ---
-  deploy_backend_services:
+  deploy_backends:
+    needs: build_and_push_images
     runs-on: ubuntu-latest
-    needs: build_and_push_backend_images
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -67,16 +70,15 @@ jobs:
       - name: Deploy Postgres DBs
         run: kubectl apply -f k8s/postgres.yaml
 
-      - name: Deploy backend services
+      - name: Deploy backend services to AKS
         run: |
           for svc in product_service order_service customer_service; do
             kubectl apply -f k8s/${svc}-service.yaml
             kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
           done
 
-# --- Trigger frontend CD ---
   trigger_frontend:
-    needs: deploy_backend_services
+    needs: deploy_backends
     uses: ./.github/workflows/frontend-cd.yml
     with:
       aks_cluster_name: ${{ inputs.aks_cluster_name }}
