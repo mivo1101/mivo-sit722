@@ -36,7 +36,11 @@ jobs:
       - name: Set AKS credentials
         run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
 
-      - name: Set ACR pull secret
+      # --- Option 2: login to ACR first ---
+      - name: Login to Azure Container Registry
+        run: az acr login --name ${{ inputs.aks_acr_name }}
+
+      - name: Create ACR pull secret in Kubernetes
         run: |
           kubectl create secret docker-registry acr-auth \
             --docker-server=${{ inputs.aks_acr_name }}.azurecr.io \
