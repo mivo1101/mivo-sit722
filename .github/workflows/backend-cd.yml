@@ -68,10 +68,13 @@ jobs:
             kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
           done
 
-      - name: Trigger frontend CD workflow
-        uses: ./.github/workflows/frontend-cd.yml
-        with:
-          aks_cluster_name: ${{ inputs.aks_cluster_name }}
-          aks_resource_group: ${{ inputs.aks_resource_group }}
-          aks_acr_name: ${{ inputs.aks_acr_name }}
-          image_tag: ${{ inputs.image_tag }}
+  trigger_frontend:
+    needs: deploy_backends
+    uses: ./.github/workflows/frontend-cd.yml
+    with:
+      aks_cluster_name: ${{ inputs.aks_cluster_name }}
+      aks_resource_group: ${{ inputs.aks_resource_group }}
+      aks_acr_name: ${{ inputs.aks_acr_name }}
+      image_tag: ${{ inputs.image_tag }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
