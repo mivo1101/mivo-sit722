@@ -153,10 +153,14 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}-${{ github.run_id }}
             ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-      - name: Trigger backend CD
-        uses: ./.github/workflows/backend-cd.yml
-        with:
-          aks_cluster_name: mivoaks
-          aks_resource_group: deakin
-          aks_acr_name: mivohd
-          image_tag: ${{ github.sha }}-${{ github.run_id }}
+  trigger_deploy:
+    name: Trigger backend CD (on main)
+    needs: build_and_push_images
+    uses: ./.github/workflows/backend-cd.yml
+    with:
+      aks_cluster_name: mivoaks
+      aks_resource_group: deakin
+      aks_acr_name: mivohd
+      image_tag: ${{ github.sha }}-${{ github.run_id }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
