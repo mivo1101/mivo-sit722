@@ -23,7 +23,8 @@ jobs:
   deploy_backends:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
@@ -32,6 +33,22 @@ jobs:
 
       - name: Set AKS credentials
         run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
+
+      - name: Build & push backend Docker images
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: |
+            ${{ inputs.aks_acr_name }}.azurecr.io/product_service:${{ inputs.image_tag }}
+            ${{ inputs.aks_acr_name }}.azurecr.io/order_service:${{ inputs.image_tag }}
+            ${{ inputs.aks_acr_name }}.azurecr.io/customer_service:${{ inputs.image_tag }}
+          build-args: |
+            PYTHONUNBUFFERED=1
+          context: ./backend
+          file: ./backend/${{ matrix.service }}/Dockerfile
+        strategy:
+          matrix:
+            service: [product_service, order_service, customer_service]
 
       - name: Set ACR pull secret
         run: |
@@ -44,14 +61,14 @@ jobs:
       - name: Deploy Postgres DBs
         run: kubectl apply -f k8s/postgres.yaml
 
-      - name: Deploy backend services
+      - name: Deploy backend services to AKS
         run: |
-          for svc in product order customer; do
+          for svc in product_service order_service customer_service; do
             kubectl apply -f k8s/${svc}-service.yaml
-            kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}_service:${{ inputs.image_tag }}
+            kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
           done
 
-      - name: Trigger frontend CD
+      - name: Trigger frontend CD workflow
         uses: ./.github/workflows/frontend-cd.yml
         with:
           aks_cluster_name: ${{ inputs.aks_cluster_name }}
