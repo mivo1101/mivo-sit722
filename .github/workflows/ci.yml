@@ -154,7 +154,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
   trigger_deploy:
-    name: Trigger backend CD (on main)
+    name: Trigger backend CD
     needs: build_and_push_images
     uses: ./.github/workflows/backend-cd.yml
     with:
