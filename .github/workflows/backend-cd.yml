@@ -32,11 +32,13 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+        
+      - name: Set subscription
+        run: az account set --subscription "SIT722"
 
       - name: Set AKS credentials
         run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
 
-      # --- Option 2: login to ACR first ---
       - name: Login to Azure Container Registry
         run: az acr login --name ${{ inputs.aks_acr_name }}
 
