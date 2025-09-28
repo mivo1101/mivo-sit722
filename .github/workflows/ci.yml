@@ -6,10 +6,6 @@ on:
       - testing
   workflow_dispatch:
 
-env:
-  IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}
-  ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-
 jobs:
   test_backends:
     runs-on: ubuntu-latest
@@ -124,8 +120,8 @@ jobs:
           context: ./backend/product_service
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }}-${{ github.run_id }}
-            ${{ env.ACR_LOGIN_SERVER }}/product_service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }}-${{ github.run_id }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
 
       - name: Build & push order_service
         uses: docker/build-push-action@v4
@@ -133,8 +129,8 @@ jobs:
           context: ./backend/order_service
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }}-${{ github.run_id }}
-            ${{ env.ACR_LOGIN_SERVER }}/order_service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }}-${{ github.run_id }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
 
       - name: Build & push customer_service
         uses: docker/build-push-action@v4
@@ -142,8 +138,8 @@ jobs:
           context: ./backend/customer_service
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/customer_service:${{ github.sha }}-${{ github.run_id }}
-            ${{ env.ACR_LOGIN_SERVER }}/customer_service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:${{ github.sha }}-${{ github.run_id }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:latest
 
       - name: Build & push frontend
         uses: docker/build-push-action@v4
@@ -151,17 +147,13 @@ jobs:
           context: ./frontend
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}-${{ github.run_id }}
-            ${{ env.ACR_LOGIN_SERVER }}/frontend:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}-${{ github.run_id }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
-  trigger_backend_cd:
-    needs: build_and_push_images
-    if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/backend-cd.yml
-    with:
-      aks_cluster_name: mivoaks
-      aks_resource_group: deakin
-      aks_acr_name: mivohd
-      image_tag: ${{ github.sha }}-${{ github.run_id }}
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Trigger backend CD
+        uses: ./.github/workflows/backend-cd.yml
+        with:
+          aks_cluster_name: mivoaks
+          aks_resource_group: deakin
+          aks_acr_name: mivohd
+          image_tag: ${{ github.sha }}-${{ github.run_id }}

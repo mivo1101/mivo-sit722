@@ -42,8 +42,7 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Postgres DBs
-        run: |
-          kubectl apply -f k8s/postgres.yaml
+        run: kubectl apply -f k8s/postgres.yaml
 
       - name: Deploy backend services
         run: |
@@ -59,5 +58,3 @@ jobs:
           aks_resource_group: ${{ inputs.aks_resource_group }}
           aks_acr_name: ${{ inputs.aks_acr_name }}
           image_tag: ${{ inputs.image_tag }}
-        secrets:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
