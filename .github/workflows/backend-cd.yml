@@ -1,4 +1,4 @@
-# .github/workflows/backend-cd.yml
+# week10/.github/workflows/backend-cd.yml
 
 name: Backend CD - Deploy to AKS
 
