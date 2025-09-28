@@ -39,7 +39,7 @@ jobs:
       - name: Set AKS credentials
         run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
 
-      - name: Login to Azure Container Registry
+      - name: Login to ACR
         run: az acr login --name ${{ inputs.aks_acr_name }}
 
       - name: Create ACR pull secret in Kubernetes
