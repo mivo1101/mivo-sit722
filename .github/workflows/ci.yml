@@ -67,6 +67,9 @@ jobs:
           done
           pip install pytest httpx
 
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=$(pwd)/backend/order_service" >> $GITHUB_ENV
+
       - name: Run product_service tests
         working-directory: backend/product_service
         env:
