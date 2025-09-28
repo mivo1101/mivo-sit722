@@ -22,6 +22,9 @@ on:
 jobs:
   deploy_backends:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [product_service, order_service, customer_service]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,21 +37,15 @@ jobs:
       - name: Set AKS credentials
         run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
 
-      - name: Build & push backend Docker images
+      - name: Build & push backend Docker image
         uses: docker/build-push-action@v4
         with:
+          context: ./backend/${{ matrix.service }}
+          file: ./backend/${{ matrix.service }}/Dockerfile
           push: true
-          tags: |
-            ${{ inputs.aks_acr_name }}.azurecr.io/product_service:${{ inputs.image_tag }}
-            ${{ inputs.aks_acr_name }}.azurecr.io/order_service:${{ inputs.image_tag }}
-            ${{ inputs.aks_acr_name }}.azurecr.io/customer_service:${{ inputs.image_tag }}
+          tags: ${{ inputs.aks_acr_name }}.azurecr.io/${{ matrix.service }}:${{ inputs.image_tag }}
           build-args: |
             PYTHONUNBUFFERED=1
-          context: ./backend
-          file: ./backend/${{ matrix.service }}/Dockerfile
-        strategy:
-          matrix:
-            service: [product_service, order_service, customer_service]
 
       - name: Set ACR pull secret
         run: |
@@ -61,12 +58,10 @@ jobs:
       - name: Deploy Postgres DBs
         run: kubectl apply -f k8s/postgres.yaml
 
-      - name: Deploy backend services to AKS
+      - name: Deploy backend service to AKS
         run: |
-          for svc in product_service order_service customer_service; do
-            kubectl apply -f k8s/${svc}-service.yaml
-            kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
-          done
+          kubectl apply -f k8s/${{ matrix.service }}-service.yaml
+          kubectl set image deployment/${{ matrix.service }}-service ${{ matrix.service }}-service=${{ inputs.aks_acr_name }}.azurecr.io/${{ matrix.service }}:${{ inputs.image_tag }}
 
   trigger_frontend:
     needs: deploy_backends
