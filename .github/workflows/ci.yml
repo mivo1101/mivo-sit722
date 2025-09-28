@@ -162,7 +162,7 @@ jobs:
     with:
       aks_cluster_name: mivoaks
       aks_resource_group: deakin
-      aks_acr_name: mivohd
+      aks_acr_name: ${{ secrets.ACR_NAME }}
       image_tag: ${{ github.sha }}-${{ github.run_id }}
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
