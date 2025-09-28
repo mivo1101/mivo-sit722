@@ -1,14 +1,9 @@
-FROM python:3.10-slim-buster
+FROM nginx:alpine
 
-WORKDIR /code
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-COPY requirements.txt .
+COPY . /usr/share/nginx/html
 
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+EXPOSE 80
 
-COPY app /code/app
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["nginx", "-g", "daemon off;"]
