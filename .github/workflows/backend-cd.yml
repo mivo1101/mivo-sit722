@@ -1,99 +1,106 @@
 name: Backend CD - Deploy to AKS
 
+name: CD - Deploy Backend Services to AKS
+
 on:
   workflow_call:
-    inputs:
-      aks_cluster_name:
-        required: true
-        type: string
-      aks_resource_group:
-        required: true
-        type: string
-      aks_acr_name:
-        required: true
-        type: string
-      image_tag:
-        required: true
-        type: string
-    secrets:
-      AZURE_CREDENTIALS:
-        required: true
+    outputs:
+      PRODUCT_API_IP:
+        description: Product service external IP
+        value: ${{ jobs.deploy_backend.outputs.PRODUCT_API_IP }}
+      ORDER_API_IP:
+        description: Order service external IP
+        value: ${{ jobs.deploy_backend.outputs.ORDER_API_IP }}
+      CUSTOMER_API_IP:
+        description: Customer service external IP
+        value: ${{ jobs.deploy_backend.outputs.CUSTOMER_API_IP }}
 
 jobs:
-  deploy_backends:
+  deploy_backend:
     runs-on: ubuntu-latest
+    environment: Production
+    
+    outputs:
+      PRODUCT_API_IP: ${{ steps.get_product_ip.outputs.external_ip }}
+      ORDER_API_IP: ${{ steps.get_order_ip.outputs.external_ip }}
+      CUSTOMER_API_IP: ${{ steps.get_customer_ip.outputs.external_ip }}
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Update Azure CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y azure-cli
-          az --version
-
-      - name: Clear Azure CLI Cache
-        run: az account clear
-
-      - name: Azure Login
-        uses: azure/login@v2
+      - name: Login to Azure
+        uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
+          enable-AzPSSession: true
 
-      - name: Explicit Azure CLI Login
+      - name: Set Kubernetes context (get AKS credentials)
         run: |
-          az login --service-principal \
-            --username ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} \
-            --password ${{ fromJson(secrets.AZURE_CREDENTIALS).clientSecret }} \
-            --tenant ${{ fromJson(secrets.AZURE_CREDENTIALS).tenantId }}
+          az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
 
-      - name: Debug Azure CLI Authentication
+      - name: Attach ACR
         run: |
-          az account show
-          az account list --query "[].{name:name, id:id, state:state, tenantId:tenantId}" -o table
-          az ad sp show --id ${{ fromJson(secrets.AZURE_CREDENTIALS).clientId }} --query "{displayName:displayName, objectId:objectId}" -o table
-          az role assignment list --scope /subscriptions/2006f28d-a628-4b7b-a2af-711153c24ba3/resourceGroups/deakin/providers/Microsoft.ContainerRegistry/registries/mivohd --query "[].{principalName:principalName, role:roleDefinitionName}" -o table
+          az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
 
-      - name: Register ContainerRegistry Provider
+      - name: Deploy Backend to Production Environment
         run: |
-          az provider register -n Microsoft.ContainerRegistry --subscription "2006f28d-a628-4b7b-a2af-711153c24ba3" --wait
-          az provider show -n Microsoft.ContainerRegistry --subscription "2006f28d-a628-4b7b-a2af-711153c24ba3" --query "registrationState" -o tsv
-
-      - name: Debug ACR Access
+          kubectl apply -f k8s/configmaps.yaml -n production
+          kubectl apply -f k8s/secrets.yaml -n production
+          kubectl apply -f k8s/rabbitmq.yaml -n production
+          kubectl apply -f k8s/product-db.yaml -n production
+          kubectl apply -f k8s/order-db.yaml -n production
+          kubectl apply -f k8s/customer-db.yaml -n production
+          kubectl apply -f k8s/product-service.yaml -n production
+          kubectl apply -f k8s/order-service.yaml -n production
+          kubectl apply -f k8s/customer-service.yaml -n production
+      
+      - name: Wait for Backend LoadBalancer IPs
         run: |
-          az account set --subscription "2006f28d-a628-4b7b-a2af-711153c24ba3"
-          az acr list --subscription "2006f28d-a628-4b7b-a2af-711153c24ba3" --query "[].{name:name, resourceGroup:resourceGroup, loginServer:loginServer}" -o table || echo "Failed to list ACRs"
-          az acr credential show -n ${{ inputs.aks_acr_name }} --query "{username:username, password:passwords[0].value}" -o table || echo "Failed to access ACR credentials"
+          echo "Waiting for Product, Order, Customer LoadBalancer IPs to be assigned (up to 5 minutes)..."
+          PRODUCT_IP=""
+          ORDER_IP=""
+          CUSTOMER_IP=""
+          
+          for i in $(seq 1 60); do
+            echo "Attempt $i/60 to get IPs..."
+            PRODUCT_IP=$(kubectl get service product-service-w10-aks -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            ORDER_IP=$(kubectl get service order-service-w10-aks -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            CUSTOMER_IP=$(kubectl get service customer-service-w10-aks -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-      - name: Set AKS credentials
-        run: az aks get-credentials --name ${{ inputs.aks_cluster_name }} --resource-group ${{ inputs.aks_resource_group }}
-
-      - name: Set ACR pull secret
-        run: |
-          az account set --subscription "2006f28d-a628-4b7b-a2af-711153c24ba3"
-          kubectl create secret docker-registry acr-auth \
-            --docker-server=${{ inputs.aks_acr_name }}.azurecr.io \
-            --docker-username=$(az acr credential show -n ${{ inputs.aks_acr_name }} --query username -o tsv) \
-            --docker-password=$(az acr credential show -n ${{ inputs.aks_acr_name }} --query passwords[0].value -o tsv) \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Deploy Postgres DBs
-        run: kubectl apply -f k8s/postgres.yaml
-
-      - name: Deploy backend services to AKS
-        run: |
-          for svc in product_service order_service customer_service; do
-            kubectl apply -f k8s/${svc}-service.yaml
-            kubectl set image deployment/${svc}-service ${svc}-service=${{ inputs.aks_acr_name }}.azurecr.io/${svc}:${{ inputs.image_tag }}
+            if [[ -n "$PRODUCT_IP" && -n "$ORDER_IP" && -n "$CUSTOMER_IP" ]]; then
+              echo "All backend LoadBalancer IPs assigned!"
+              echo "Product Service IP: $PRODUCT_IP"
+              echo "Order Service IP: $ORDER_IP"
+              echo "Customer Service IP: $CUSTOMER_IP"
+              break
+            fi
+            sleep 5 # Wait 5 seconds before next attempt
           done
+          
+          if [[ -z "$PRODUCT_IP" || -z "$ORDER_IP" || -z "$CUSTOMER_IP" ]]; then
+            echo "Error: One or more LoadBalancer IPs not assigned after timeout."
+            exit 1 # Fail the job if IPs are not obtained
+          fi
+          
+          # These are environment variables for subsequent steps in the *same job*
+          # And used to set the job outputs
+          echo "PRODUCT_IP=$PRODUCT_IP" >> $GITHUB_ENV
+          echo "ORDER_IP=$ORDER_IP" >> $GITHUB_ENV
+          echo "CUSTOMER_IP=$CUSTOMER_IP" >> $GITHUB_ENV
 
-  trigger_frontend:
-    needs: deploy_backends
-    uses: ./.github/workflows/frontend-cd.yml
-    with:
-      aks_cluster_name: ${{ inputs.aks_cluster_name }}
-      aks_resource_group: ${{ inputs.aks_resource_group }}
-      aks_acr_name: ${{ inputs.aks_acr_name }}
-      image_tag: ${{ inputs.image_tag }}
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Capture Product Service IP for Workflow Output
+        id: get_product_ip
+        run: echo "external_ip=${{ env.PRODUCT_IP }}" >> $GITHUB_OUTPUT
+      
+      - name: Capture Order Service IP for Workflow Output
+        id: get_order_ip
+        run: echo "external_ip=${{ env.ORDER_IP }}" >> $GITHUB_OUTPUT
+
+      - name: Capture Customer Service IP for Workflow Output
+        id: get_customer_ip
+        run: echo "external_ip=${{ env.CUSTOMER_IP }}" >> $GITHUB_OUTPUT
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()

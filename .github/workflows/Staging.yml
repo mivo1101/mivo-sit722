@@ -1,0 +1,72 @@
+# .github/workflows/staging.yml
+
+name: Staging - Deploy Backend and Frontend to Staging
+
+on:
+  workflow_run:
+    workflows: ["CI - Test, Build, Push Images to ACR"]
+    types:
+      - completed
+
+jobs:
+  deploy_backend_staging:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS Context
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - name: Attach ACR
+        run: |
+          az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
+
+      - name: Deploy Backend to Staging Environment
+        run: |
+          kubectl apply -f k8s/configmaps.yaml -n staging
+          kubectl apply -f k8s/secrets.yaml -n staging
+          kubectl apply -f k8s/rabbitmq.yaml -n staging
+          kubectl apply -f k8s/product-db.yaml -n staging
+          kubectl apply -f k8s/order-db.yaml -n staging
+          kubectl apply -f k8s/customer-db.yaml -n staging
+          kubectl apply -f k8s/product-service.yaml -n staging
+          kubectl apply -f k8s/order-service.yaml -n staging
+          kubectl apply -f k8s/customer-service.yaml -n staging
+
+  deploy_frontend_staging:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Set AKS Context
+        run: |
+          az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
+
+      - name: Attach ACR
+        run: |
+          az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
+
+      - name: Deploy Frontend to Staging Environment
+        run: |
+          kubectl apply -f k8s/frontend.yaml -n staging
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()
