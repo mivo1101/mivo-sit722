@@ -1,8 +1,13 @@
-name: Backend CD - Deploy to AKS
+# .github/workflows/backend-cd.yml
 
-name: CD - Deploy Backend Services to AKS
+name: CD - Deploy Backend to AKS
 
 on:
+  on:
+    push:
+      branches:
+        - main
+        
   workflow_call:
     outputs:
       PRODUCT_API_IP:
