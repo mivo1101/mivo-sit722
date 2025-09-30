@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: CI - Test, Build, Push Images to ACR
+name: Test, Build, Push Images to ACR (CI)
 
 on:
   push:

@@ -4,7 +4,7 @@ name: Deploy Backend and Frontend to Staging Environment
 
 on:
   workflow_run:
-    workflows: ["CI - Test, Build, Push Images to ACR"]
+    workflows: ["Test, Build, Push Images to ACR (CI)"]
     types:
       - completed
     branches:
