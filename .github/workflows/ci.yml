@@ -11,6 +11,14 @@ on:
       - 'frontend/**'
       - '.github/workflows/**'
 
+concurrency:
+  group: ci-${{ github.ref }}
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
 jobs:
   test_backends:
     runs-on: ubuntu-latest
@@ -146,3 +154,9 @@ jobs:
       - name: Logout from Azure
         run: az logout
         if: always()
+
+      # In the build_and_push_images job, add at the end:
+      - name: Debug Workflow Conclusion
+        run: |
+          echo "Workflow Run ID: ${{ github.run_id }}"
+          echo "Workflow Conclusion: ${{ github.event.workflow_run.conclusion || 'unknown' }}"
