@@ -11,9 +11,9 @@ on:
       - testing
     workflow_dispatch:
 
-  permissions:
-    contents: read
-    id-token: write
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   debug_workflow_run:
