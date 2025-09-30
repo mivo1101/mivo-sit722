@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: Test, Build, Push Images to ACR (CI)
+name: CI - Test, Build, Push Images to ACR
 
 on:
   push:
@@ -9,12 +9,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
-      - '.github/workflows/**'
-
-permissions:
-  contents: read
-  id-token: write
-  packages: write
+      - '.github/workflows/ci.yml'
 
 jobs:
   test_backends:
