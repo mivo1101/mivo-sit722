@@ -45,9 +45,9 @@ jobs:
           kubectl apply -f k8s/order-service.yaml -n staging
           kubectl apply -f k8s/customer-service.yaml -n staging
 
-      - name: Logout from Azure
-        run: az logout
-        if: always()
+      # - name: Logout from Azure
+      #   run: az logout
+      #   if: always()
 
   deploy_frontend_staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
