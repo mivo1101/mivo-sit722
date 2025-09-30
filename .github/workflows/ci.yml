@@ -9,7 +9,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/**'
 
 jobs:
   test_backends:
@@ -124,28 +124,19 @@ jobs:
       - name: Login to ACR
         run: az acr login --name ${{ secrets.ACR_LOGIN_SERVER }}
 
-      - name: Build Backend service images
+      - name: Build service images
         run: |
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest ./backend/product_service/
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest ./backend/order_service/
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:latest ./backend/customer_service/
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend/
 
-      - name: Push Backend service images to ACR
+      - name: Push service images to ACR
         run: |
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/customer_service:latest
-
-      - name: Build & push frontend image
-        run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest ./frontend/
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
-
-      - name: Debug Workflow Status
-        run: |
-          echo "Workflow Run ID: ${{ github.run_id }}"
-          echo "Workflow Status: Success (reached this step)"
-          echo "Branch: ${{ github.ref_name }}"
 
       - name: Logout from Azure
         run: az logout
