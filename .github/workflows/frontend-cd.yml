@@ -1,4 +1,4 @@
-# .github/workflows/frontend_cd.yml
+# .github/workflows/frontend-cd.yml
 
 name: CD - Deploy Frontend to AKS
 
@@ -6,10 +6,10 @@ on:
   push:
     branches:
       - main
-# kkkkkkkk
+
 jobs:
   call_backend_cd:
-    uses: ./.github/workflows/backend_cd.yml
+    uses: ./.github/workflows/backend-cd.yml
     secrets: inherit
 
   deploy_frontend:
