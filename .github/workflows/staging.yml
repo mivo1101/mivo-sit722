@@ -9,7 +9,7 @@ on:
       - completed
     branches:
       - testing
-    workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,7 +30,6 @@ jobs:
   deploy_backend_staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -47,6 +46,10 @@ jobs:
       - name: Attach ACR
         run: |
           az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
+
+      - name: Create Staging Namespace
+        run: |
+          kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Backend to Staging Environment
         run: |
@@ -60,10 +63,13 @@ jobs:
           kubectl apply -f k8s/order-service.yaml -n staging
           kubectl apply -f k8s/customer-service.yaml -n staging
 
+      - name: Logout from Azure
+        run: az logout
+        if: always()
+
   deploy_frontend_staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -80,6 +86,10 @@ jobs:
       - name: Attach ACR
         run: |
           az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
+
+      - name: Create Staging Namespace
+        run: |
+          kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Frontend to Staging Environment
         run: |
