@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: customer-service-container
-        image: s224252426.azurecr.io/customer_service:latest
+        image: mivosit722.azurecr.io/customer_service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8002

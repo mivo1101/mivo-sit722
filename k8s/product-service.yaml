@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: product-service-container
-        image: s224252426.azurecr.io/product_service:latest
+        image: mivosit722.azurecr.io/product_service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
