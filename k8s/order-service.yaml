@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: order-service-container
-        image: s224252426.azurecr.io/order_service:latest
+        image: mivosit722.azurecr.io/order_service:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8001
