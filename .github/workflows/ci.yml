@@ -9,7 +9,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
-      - '.github/workflows/ci.yml'
+      - '.github/workflows/**'
 
 jobs:
   test_backends:
