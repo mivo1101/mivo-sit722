@@ -25,9 +25,9 @@ jobs:
         run: |
           az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
 
-      - name: Attach ACR
-        run: |
-          az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
+      #- name: Attach ACR
+      #  run: |
+      #    az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
 
       - name: Create Staging Namespace
         run: |
@@ -45,9 +45,9 @@ jobs:
           kubectl apply -f k8s/order-service.yaml -n staging
           kubectl apply -f k8s/customer-service.yaml -n staging
 
-      # - name: Logout from Azure
-      #   run: az logout
-      #   if: always()
+      - name: Logout from Azure
+         run: az logout
+         if: always()
 
   deploy_frontend_staging:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
