@@ -1,6 +1,6 @@
 # .github/workflows/staging.yml
 
-name: Deploy Backend and Frontend to Staging
+name: Staging - Deploy Backend and Frontend to Staging
 
 on:
   workflow_run:
@@ -60,10 +60,6 @@ jobs:
       - name: Set AKS Context
         run: |
           az aks get-credentials --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --name ${{ secrets.AKS_CLUSTER_NAME }} --overwrite-existing
-
-      - name: Attach ACR
-        run: |
-          az aks update --name ${{ secrets.AKS_CLUSTER_NAME }} --resource-group ${{ secrets.AKS_RESOURCE_GROUP }} --attach-acr ${{ secrets.ACR_NAME }}
 
       - name: Create Staging Namespace
         run: |
