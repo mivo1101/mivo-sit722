@@ -34,10 +34,9 @@ jobs:
         run: |
           echo "Injecting IPs into frontend/static/js/main.js"
           # Ensure frontend/main.js is directly in the path for sed
-          sed -i "s|_PRODUCT_API_URL_|${{ needs.call_backend_cd.outputs.PRODUCT_API_IP }}|g" frontend/static/js/main.js
-          sed -i "s|_ORDER_API_URL_|${{ needs.call_backend_cd.outputs.ORDER_API_IP }}|g" frontend/static/js/main.js
-          sed -i "s|_CUSTOMER_API_URL_|${{ needs.call_backend_cd.outputs.CUSTOMER_API_IP }}|g" frontend/static/js/main.js
-
+          sed -i "s|_PRODUCT_API_URL_|${{ needs.call_backend_cd.outputs.PRODUCT_API_IP }}|g" frontend/main.js
+          sed -i "s|_ORDER_API_URL_|${{ needs.call_backend_cd.outputs.ORDER_API_IP }}|g" frontend/main.js
+          sed -i "s|_CUSTOMER_API_URL_|${{ needs.call_backend_cd.outputs.CUSTOMER_API_IP }}|g" frontend/main.js
           
           # Display the modified file content for debugging
           echo "--- Modified main.js content ---"
